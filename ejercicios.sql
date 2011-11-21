@@ -214,12 +214,21 @@ ALTER TABLE G25_tipo_actividad
 CHECK (nombre IN ('social','deportiva','cultural'));
 
 
---------------------------------------------------------------------
+-------------------------------------------------------------------
 ---------------------- Punto 5  ------------------------------------
 --------------------------------------------------------------------
+/*5. Un usuario solo podrá visitar paseos donde pueda desarrollar actividades de su interés o bien paseos 
+que no tienen ninguna actividad asociada. Si el usuario no puede realizar una visita porque no se 
+desarrollan las actividades de su interés deberá quedar registrado en una tabla Paseo_Fallido con los 
+siguientes datos: usuario, todas las actividades de interés del usuario en cuestión, nombre del paseo,
+las actividades del paseo que quería realizar y fecha.*/
+
 
 /*--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO*/
 -- Terminar agregando en tabla todas las actividades del usuario y del lugar
+
+DROP TABLE G25_paseo_fallido ;
+DROP TABLE G25_visita_fallida_tmp;
 
 CREATE TABLE G25_paseo_fallido(
 	cod_fallo		NUMERIC(10,0),
@@ -227,33 +236,31 @@ CREATE TABLE G25_paseo_fallido(
 	cod_paseo		NUMERIC(10,0),
 	cod_ciudad		NUMERIC(10,0),
 	fecha			DATE
-	);
+);
+
+CREATE TABLE G25_visita_fallida_tmp(
+	cod_visita		VARCHAR(20)
+);
 
 
--- Nota: se decidió poner como pk solo un codigo para simplicidad en la clave(eficiencia)	
+-- Nota: se decidi? poner como pk solo un codigo para simplicidad en la clave(eficiencia)	
 ALTER TABLE G25_paseo_fallido
 	ADD CONSTRAINT pk_paseo_fallido
 		PRIMARY KEY (cod_fallo);
 		
 ALTER TABLE G25_paseo_fallido
 	ADD CONSTRAINT fk_paseo_fallido_usuario
-		FOREIGN KEY (cod_usuario) REFERENCES usuario(cod_usuario);
+		FOREIGN KEY (cod_usuario) REFERENCES G25_usuario(cod_usuario);
 		
 ALTER TABLE G25_paseo_fallido
 	ADD CONSTRAINT fk_paseo_fallido_paseo
-		FOREIGN KEY (cod_paseo,cod_ciudad) REFERENCES paseo(cod_paseo,cod_ciudad);
+		FOREIGN KEY (cod_paseo,cod_ciudad) REFERENCES G25_paseo(cod_paseo,cod_ciudad);
 		
 -- Auto incremento para paseo_fallido		
+DROP SEQUENCE G25_ctr_pk_paseo_fallido ;
 CREATE SEQUENCE G25_ctr_pk_paseo_fallido		
 START WITH 1
 INCREMENT BY 1;
-
-
---Para cada actividad   CONSULTAR
-CREATE TABLE G25_actividad_fallida(
-	cod_fallo		NUMERIC(10,0),
-	id_actividad	NUMERIC(10,0)
-	);
 
 CREATE OR REPLACE TRIGGER G25_confirmacion_paseo
 BEFORE INSERT ON G25_visita
@@ -267,25 +274,38 @@ BEGIN
 	IF (cuenta > 0) THEN
 		--chequear que haya actividades en comun entre el usuario y el paseo
 		SELECT COUNT('X') INTO cuenta
-		FROM 
-			(SELECT id_actividad
-				FROM G25_realizada_en
-				WHERE cod_paseo= :NEW.cod_paseo AND cod_ciudad= :NEW.cod_ciudad
-			INTERSECT
-			SELECT id_actividad
-				FROM G25_interesa_act
-				WHERE cod_usuario= :NEW.cod_usuario);
+	    FROM (
+		      SELECT id_actividad FROM G25_realizada_en WHERE cod_paseo= :NEW.cod_paseo AND cod_ciudad= :NEW.cod_ciudad
+			  INTERSECT
+			  SELECT id_actividad FROM G25_interesa_act WHERE cod_usuario= :NEW.cod_usuario
+			  );
 		IF (cuenta == 0) THEN
 			--Paseo fallido
+			/* FALTA : armar una lista concatenada de todas las actividades de interés del usuario en cuestión,
+                       y otra con todas las actividades del paseo que quería realizar */
+			
 			INSERT INTO G25_paseo_fallido VALUES (ctr_pk_paseo_fallido.nextVal,:NEW.cod_usuario,:NEW.cod_paseo,:NEW.cod_ciudad,SYSDATE);
+			--Evita tabla mutante
+			INSERT INTO G25_visita_fallida_tmp VALUES (:NEW.cod_visita);
 			--TODO PROBAR QUE GRABE
-			RAISE_APPLICATION_ERROR(-20002,'Paseo prohibido');
+			--RAISE_APPLICATION_ERROR(-20002,'Paseo prohibido');
 		END IF;
 	END IF;
 END;	
 END;
 /
 
+CREATE OR REPLACE TRIGGER G25_confirmacion_paseo_st
+AFTER INSERT ON G25_VISITA
+DECLARE
+	I G25_visita_fallida_tmp%ROWTYPE;
+BEGIN
+	FOR I IN ( SELECT * FROM G25_visita_fallida_tmp ) LOOP
+		DELETE G25_VISITA WHERE cod_visita = I.cod_visita;
+	END LOOP;
+	DELETE FROM G25_visita_fallida_tmp;
+END;
+/
 
 
 --------------------------------------------------------------------
@@ -485,3 +505,31 @@ BEGIN
 			VALUES (:NEW.cod_paseo,:NEW.cod_ciudad,sysdate,'UPDATE',:OLD.nombre_paseo,:OLD.descripcion,:OLD.cod_usuario);
 END;
 
+
+--------------------------------------------------------------------
+---------------------- Punto 10  ------------------------------------
+--------------------------------------------------------------------
+
+
+CREATE OR REPLACE PROCEDURE G25_paseo_recovery (IN fecha_max DATE) AS
+	cur CURSOR;
+	accion	G25_log_paseo%ROWTYPE;
+BEGIN
+	OPEN cur FOR (SELECT * FROM G25_log_paseo WHERE fecha > fecha_max ORDER BY fecha);
+	IF cur%isopen THEN
+		LOOP
+			FETCH cur INTO accion
+			EXIT WHEN cur%notfound;
+			IF ( accion.accion = 'INSERT'	)	THEN
+				DELETE FROM G25_paseo WHERE cod_paseo=accion.cod_paseo AND cod_ciudad=accion.cod_ciudad;
+			ELSIF ( accion.accion = 'DELETE') THEN
+				INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) 
+							VALUES (accion.cod_ciudad,accion.cod_paseo,accion.nombre_paseo,accion.descripcion,accion.cod_usuario);
+			ELSE 
+				UPDATE G25_paseo SET nombre_paseo=accion.nombre_paseo AND descripcion=accion.descripcion AND cod_usuario=accion.cod_usuario
+							WHERE cod_paseo=accion.cod_paseo AND cod_ciudad=accion.cod_ciudad;
+			END IF;
+		END LOOP;
+	END IF;
+END;
+/
