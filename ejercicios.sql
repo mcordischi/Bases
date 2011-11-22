@@ -188,6 +188,18 @@ END;
 --------------------------------------------------------------------
 ---------------------- Punto 3  ------------------------------------
 --------------------------------------------------------------------
+
+ALTER TABLE G25_invitacion
+	MODIFY (acepta SET DEFAULT 'NO');
+
+CREATE OR REPLACE TRIGGER G25_confirmar_alta
+
+
+
+
+
+/**SOLUCION VIEJA
+
 -- Nota: el sistema se idea para que un usuario, al registrarse, debe
 -- tener su código de registro, el cual será su próximo cod_usuario. 
 -- El sistema para chequear debe asegurarse que no exista el usuario
@@ -195,7 +207,7 @@ END;
 ---------------------------------------------------------------------
 
 
-CREATE OR REPLACE TRIGGER G25_confirmar_alta
+CREATE OR REPLACE TRIGGER G25_confirmar_alta_old
 BEFORE INSERT ON G25_usuario
 FOR EACH ROW
 BEGIN
@@ -208,7 +220,7 @@ BEGIN
 	END IF;
 END;
 /
-
+**/
 
 
 --------------------------------------------------------------------
