@@ -16,8 +16,8 @@ SELECT *
 
 
 -- Ej 3 --
-
-INSERT INTO G25_invitacion(cod_usuario,email) VALUES ('1','tincho@gmail.com');
+/* CHEQUEADO -- FUNCIONA */
+INSERT INTO G25_invitacion(cod_usuario_invitado,email) VALUES ('1','tincho@gmail.com');
 INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('Test','Briar','Hopkins','tincho@gmail.com','Ciara');
 --Permitido
 INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('Test2','Briar','Hopkins','tincho@gmail.com','Ciara');

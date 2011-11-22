@@ -191,7 +191,7 @@ END;
 --------------------------------------------------------------------
 
 ALTER TABLE G25_invitacion
-	MODIFY (acepta SET DEFAULT 'NO');
+	MODIFY (acepta DEFAULT 'NO');
 
 CREATE OR REPLACE TRIGGER G25_confirmar_alta
 BEFORE INSERT ON G25_usuario
