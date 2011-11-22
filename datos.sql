@@ -1,3 +1,8 @@
+-- Borrar tablas auxiliares
+
+DROP TABLE G25_comentarios_user;
+DROP TABLE G25_cant_amigos;
+
 -- Vaciar tablas
 
 DELETE FROM G25_comentarios_user;
@@ -38,8 +43,11 @@ END;
 **/
 
 
-
-
+/*AGREGAR OBJETOS DE:*/
+/**
+	Contador de cantidad de amigos (ej2)
+	Contador de mensajes (ej1)
+**/
 
 --tipo actividad	
 INSERT INTO G25_tipo_actividad(id_tipo_act,nombre) VALUES (1,'deportiva');

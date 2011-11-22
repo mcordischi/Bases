@@ -155,7 +155,7 @@ ALTER TABLE G25_cant_amigos
 -- Valor maximo para amigos	de cada usuario
 ALTER TABLE G25_cant_amigos
 	ADD CONSTRAINT cant_max_amigos
-		CHECK (amigos<=500);
+		CHECK (amigos<=50);--cambiado para test
 
 		
 --Actualiza cantidad de amigos cuando se agrega a tabla de amigos		
