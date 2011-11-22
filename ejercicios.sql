@@ -1,3 +1,8 @@
+--Preguntas
+
+/*En esquema: erwin no toma bien relacion respuesta-original*/
+
+
 -- Extras
 
 ALTER TABLE G25_usuario
