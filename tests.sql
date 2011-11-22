@@ -118,9 +118,11 @@ SELECT *
 ----------
 -- Ej 6 --
 ----------
-
+/*CHEQUEADO -- FUNCIONA*/
+INSERT INTO G25_comentario (cod_usuario,texto,tipo,cod_comentario) VALUES ('111','magna tellus faucibus leo, in lobortis tellus justo sit amet','Original','1');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES('1','En muro');
 INSERT INTO G25_comentario (cod_usuario,texto,tipo,cod_comentario) VALUES ('423','pretium aliquet, metus urna','Respuesta','1001');
-INSERT INTO G25_respuesta VALUES ('1001','1');
+INSERT INTO G25_respuesta(cod_comentario,cod_original) VALUES ('1001','1');
 --Permitido
 INSERT INTO G25_original VALUES('1001','En muro');
 --Fallar

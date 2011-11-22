@@ -364,7 +364,7 @@ BEGIN
 	DECLARE
 	cuenta INT;
 BEGIN
-	SELECT COUNT('X') INTO cuenta FROM G25_comentario C WHERE (C.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'original') ;
+	SELECT COUNT('X') INTO cuenta FROM G25_comentario C WHERE (C.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'Original') ;
 	IF (cuenta=0) THEN
 		RAISE_APPLICATION_ERROR(-20003,'Error de jerarquia original');
 	END IF;
@@ -380,7 +380,7 @@ BEGIN
 	DECLARE
 	cuenta INT;
 BEGIN
-	SELECT COUNT('X') INTO cuenta FROM G25_comentario C WHERE (C.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'respuesta') ;
+	SELECT COUNT('X') INTO cuenta FROM G25_comentario C WHERE (C.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'Respuesta') ;
 	IF (cuenta=0) THEN
 		RAISE_APPLICATION_ERROR(-20004,'Error de jerarquia respuesta');
 	END IF;
@@ -397,7 +397,7 @@ BEGIN
 	DECLARE
 	cuenta INT;
 BEGIN
-	SELECT COUNT('X') INTO cuenta FROM G25_original O WHERE (O.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'en muro') ;
+	SELECT COUNT('X') INTO cuenta FROM G25_original O WHERE (O.cod_comentario = :NEW.cod_comentario) AND (O.tipodeorig = 'En muro') ;
 	IF (cuenta=0) THEN
 		RAISE_APPLICATION_ERROR(-20005,'Error de jerarquia en muro');
 	END IF;
@@ -414,7 +414,7 @@ BEGIN
 	DECLARE
 	cuenta INT;
 BEGIN
-	SELECT COUNT('X') INTO cuenta FROM G25_original O WHERE (O.cod_comentario = :NEW.cod_comentario) AND (C.tipo = 'en visita') ;
+	SELECT COUNT('X') INTO cuenta FROM G25_original O WHERE (O.cod_comentario = :NEW.cod_comentario) AND (O.tipodeorig = 'En visita') ;
 	IF (cuenta=0) THEN
 		RAISE_APPLICATION_ERROR(-20006,'Error de jerarquia en visita');
 	END IF;
@@ -461,7 +461,7 @@ CREATE TABLE G25_comentarios_edad(
 );
 
 ALTER TABLE G25_comentarios_edad
-	ALTER cantidad SET DEFAULT 0 ;
+	MODIFY (cantidad DEFAULT 0) ;
 
 ALTER TABLE G25_comentarios_edad
 	ADD CONSTRAINT RD_grupo
@@ -471,28 +471,32 @@ ALTER TABLE G25_comentarios_edad
 	ADD CONSTRAINT pk_comentarios_edad
 		PRIMARY KEY(mes,ano,grupo);
 
-
+/*TODO chequear*/
 CREATE OR REPLACE TRIGGER G25_contador_com_edad
 AFTER INSERT ON G25_comentario
 FOR EACH ROW
 BEGIN
 	DECLARE
-	fecha	DATE;
+	edad	INTEGER;
 BEGIN
-	SELECT fecha_nacimiento INTO fecha FROM usuario WHERE cod_usuario=:NEW.cod_usuario;
-	fecha= sysdate-fecha;
-	IF (extract(year from fecha)>21) THEN
-		UPDATE TABLE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(month from sysdate) AND grupo='adultos';	
-	ELSIF (extract(year from fecha)>14) THEN
-		UPDATE TABLE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(month from sysdate) AND grupo='jovenes';	
+	SELECT trunc((to_number(to_char(sysdate,'yyyymmdd'))
+			-to_number(to_char(fecha_nacimiento,'yyyymmdd'))
+			)/10000)
+	INTO edad FROM G25_usuario WHERE cod_usuario=:NEW.cod_usuario;
+	IF (edad>21) THEN
+		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
+									AND ano=extract(year from sysdate) AND grupo='adultos';	
+	ELSIF (edad>14) THEN
+		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
+									AND ano=extract(year from sysdate) AND grupo='jovenes';	
 	ELSE 
-		UPDATE TABLE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(month from sysdate) AND grupo='ninos';	
+		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
+									AND ano=extract(year from sysdate) AND grupo='ninos';	
 	END IF;
+	
 END;
 END;
+/
 
 
 
