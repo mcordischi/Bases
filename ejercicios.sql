@@ -70,6 +70,7 @@ BEGIN
 	INSERT INTO G25_comentarios_user VALUES (:NEW.cod_usuario,sysdate,0);
 END;
 /
+
 ---*** SOLUCION VIEJA ***---
 
 --creación de tabla temporal
@@ -140,7 +141,7 @@ CREATE TABLE G25_cant_amigos(
 
 ALTER TABLE G25_cant_amigos
 ADD CONSTRAINT fk_cod_usuario
-FOREIGN KEY (cod_usuario) REFERENCES G25_amigo(cod_usuario) ON DELETE CASCADE ;
+FOREIGN KEY (cod_usuario) REFERENCES G25_usuario(cod_usuario) ON DELETE CASCADE ;
 
 ALTER TABLE G25_cant_amigos
 ADD CONSTRAINT pk_cod_usuario
@@ -149,7 +150,7 @@ PRIMARY KEY (cod_usuario) ;
 	
 -- Valor default para cantidad amigos
 ALTER TABLE G25_cant_amigos
-	ALTER amigos SET DEFAULT 0 ;
+	MODIFY (amigos DEFAULT 0) ;
 	
 -- Valor maximo para amigos	de cada usuario
 ALTER TABLE G25_cant_amigos
@@ -202,11 +203,14 @@ BEGIN
 	SELECT acepta INTO aceptar 
 		FROM G25_invitacion
 		WHERE	email=:NEW.email;
-	IF ((aceptar%notfound) OR (aceptar = 'SI')) THEN
+	IF (aceptar = 'SI') THEN
 		RAISE_APPLICATION_ERROR(-20005,'Email ya existente');
 	ELSE
 		UPDATE G25_invitacion SET acepta='SI' WHERE email=:NEW.email;
 	END IF;
+	EXCEPTION
+	WHEN OTHERS THEN
+		RAISE_APPLICATION_ERROR(-20005,'Email ya existente');
 END;
 END;
 /
@@ -243,7 +247,9 @@ END;
 ---------------------- Punto 4  ------------------------------------
 --------------------------------------------------------------------
 
+
 ALTER TABLE G25_tipo_actividad
+ADD CONSTRAINT G25_RD_nombre
 CHECK (nombre IN ('social','deportiva','cultural'));
 
 
@@ -434,7 +440,7 @@ FROM
 									FROM G25_ciudad 
 									WHERE nombre_ciudad ='Tandil')
 	)
-	NATURAL JOIN (SELECT nombre_paseo,cod_paseo,cod_ciudad FROM G25_paseo)
+	NATURAL JOIN (SELECT nombre_paseo,cod_paseo,cod_ciudad FROM G25_paseo)	
 	NATURAL JOIN (SELECT id_actividad,nombre_actividad,elemento_necesario FROM G25_actividad )
 		
 	;

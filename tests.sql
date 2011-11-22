@@ -4,8 +4,8 @@
 
 -- Ej 2 --
 
-SELECT MAX(COUNT('X')
-	FROM G25_amigo;
+SELECT MAX(amigos)
+	FROM G25_cant_amigos;
 -- DEBE devolver <500 luego de datos
 
 SELECT * 
