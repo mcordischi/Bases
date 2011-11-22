@@ -193,7 +193,23 @@ ALTER TABLE G25_invitacion
 	MODIFY (acepta SET DEFAULT 'NO');
 
 CREATE OR REPLACE TRIGGER G25_confirmar_alta
-
+BEFORE INSERT ON G25_usuario
+FOR EACH ROW
+BEGIN
+	DECLARE
+	aceptar G25_invitacion.acepta%type;
+BEGIN
+	SELECT acepta INTO aceptar 
+		FROM G25_invitacion
+		WHERE	email=:NEW.email;
+	IF ((aceptar%notfound) OR (aceptar = 'SI')) THEN
+		RAISE_APPLICATION_ERROR(-20005,'Email ya existente');
+	ELSE
+		UPDATE G25_invitacion SET acepta='SI' WHERE email=:NEW.email;
+	END IF;
+END;
+END;
+/
 
 
 
