@@ -1,6 +1,5 @@
 --Preguntas
 
-/*En esquema: erwin no toma bien relacion respuesta-original*/
 
 
 -- Extras
@@ -12,8 +11,6 @@ MODIFY (borrado DEFAULT 'NO');
 --------------------------------------------------------------------
 ---------------------- Punto 1  ------------------------------------
 --------------------------------------------------------------------
--- Nota: Por problemas con tabla mutante, se generan dos triggers
-----------------------------
 
 
 
@@ -72,6 +69,9 @@ END;
 /
 
 ---*** SOLUCION VIEJA ***---
+
+-- Nota: Por problemas con tabla mutante, se generan dos triggers
+----------------------------
 
 --creación de tabla temporal
 -- Por eficiencia no se genera con RIR
@@ -174,14 +174,14 @@ BEGIN
 	UPDATE G25_cant_amigos SET amigos=amigos-1 WHERE cod_usuario=:OLD.cod_usuario OR cod_usuario=:OLD.cod_usuario_invitado ;
 END;
 /
---Inicializa tabla de cantidad de amigos ante alta de usuario
-CREATE OR REPLACE TRIGGER G25_inic_cant_amigos
-BEFORE INSERT ON G25_usuario
-FOR EACH ROW
-BEGIN
-	INSERT INTO G25_cant_amigos VALUES (:NEW.cod_usuario,0);
-END;
-/
+	--Inicializa tabla de cantidad de amigos ante alta de usuario
+	CREATE OR REPLACE TRIGGER G25_inic_cant_amigos
+	AFTER INSERT ON G25_usuario
+	FOR EACH ROW
+	BEGIN
+		INSERT INTO G25_cant_amigos(cod_usuario,amigos) VALUES (:NEW.cod_usuario,0);
+	END;
+	/
 
 
 

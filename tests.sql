@@ -3,7 +3,7 @@
 
 
 -- Ej 2 --
-
+/* CHEQUEADO -- FUNCIONA */
 SELECT MAX(amigos)
 	FROM G25_cant_amigos;
 -- DEBE devolver <500 luego de datos
@@ -28,12 +28,12 @@ INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('Test
 
 
 -- Ej 4 --
-
+/*CHEQUEADO -- FUNCIONA*/
 SELECT * 
-	FROM G25_actividad
-	WHERE (id_tipo_act <> 'social') AND
-		(id_tipo_act <> 'deportiva') AND
-		(id_tipo_act <> 'cultural') ;
+	FROM G25_tipo_actividad
+	WHERE (nombre <> 'social') AND
+		(nombre <> 'deportiva') AND
+		(nombre <> 'cultural') ;
 -- Debe devolver vacio
 
 

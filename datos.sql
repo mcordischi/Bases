@@ -1,5 +1,7 @@
 -- Vaciar tablas
 
+DELETE FROM G25_comentarios_user;
+DELETE FROM G25_cant_amigos;
 DELETE FROM G25_amigo;
 DELETE FROM G25_comentario;
 DELETE FROM G25_tipo_actividad;
@@ -54,11 +56,11 @@ INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (1,'Ma
 INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (2,'Tandil','Pueyrredon','Buenos Aires');
 INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (3,'Buenos Aires','Ninguno','Ninguno');
 --Paseos
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) VALUES (1,1,'La feliz en verano','Temporada de verano','Marto');
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) VALUES (1,2,'La feliz en verano2','Temporada de verano','Marto');
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) VALUES (2,4,'Tandil historico','Todo trucho','Marto');
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) VALUES (2,5,'Tandil cultural','Paisanos por todos lados','Marto');
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) VALUES (2,6,'Tandil viejo','Sin caminata','Marto');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,1,'La feliz en verano','Temporada de verano');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,2,'La feliz en verano2','Temporada de verano');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,4,'Tandil historico','Todo trucho');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,5,'Tandil cultural','Paisanos por todos lados');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,6,'Tandil viejo','Sin caminata');
 --relacion actividad-paseo
 INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (1,1,1);
 INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (2,1,1);
@@ -71,6 +73,24 @@ INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (4,5,2);
 INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (3,5,2);
 INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (4,6,2);
 --Usuario
+
+-- Extras
+
+ALTER TABLE G25_usuario
+MODIFY (borrado DEFAULT 'NO');
+
+
+--Restricciones de dominio a categoria
+ALTER TABLE G25_usuario
+ADD CONSTRAINT RD_categoria
+CHECK (categoria IN ('principiante','intermedio','senior'));
+
+--Valor por default de categoria
+ALTER TABLE G25_usuario
+MODIFY (categoria DEFAULT 'principiante');
+
+
+
 INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('1','Briar','Hopkins','sit.amet.massa@non.edu','Ciara');
 INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('2','Cally','Bartlett','id@magna.org','Hyacinth');
 INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('3','Clementine','Mccoy','risus.odio@dictumProineget.edu','Amy');
