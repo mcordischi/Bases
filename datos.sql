@@ -2,6 +2,8 @@
 
 DROP TABLE G25_comentarios_user;
 DROP TABLE G25_cant_amigos;
+DROP TABLE G25_comentarios_edad;
+DROP TABLE G25_interes_act;
 
 -- Vaciar tablas
 

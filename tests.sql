@@ -138,3 +138,20 @@ INSERT INTO G25_original VALUES('1001','En muro');
 -- Ej 8 --
 ----------
 /* CHEQUEADO -- FUNCIONA */
+
+----------
+-- Ej 9 --
+----------
+/* CHEQUEADO -- FUNCIONA */
+--Luego de cargar paseos de datos.sql
+UPDATE G25_paseo SET descripcion='Muy bueno' WHERE cod_ciudad=2 AND cod_paseo=5;
+DELETE FROM G25_paseo WHERE cod_ciudad=2 AND cod_paseo=5;
+
+
+----------
+-- Ej 10--
+----------
+/* CHEQUEADO PARCIALMENTE -- FUNCIONA A MEDIAS */
+--Se hizo cambio luego de test para correcto funcionamiento
+--Realiza correctamente el procedimiento, ver si no se pisa con trigger ej 9
+EXECUTE G25_paseo_recovery (sysdate);

@@ -92,7 +92,7 @@ CREATE OR REPLACE TRIGGER G25_categoria_usuario_2
 AFTER INSERT ON comentario
 BEGIN
 	DECLARE
-	cur CURSOR FOR SELECT * FROM G25_temp_comentario;
+	cur CURSOR IS SELECT * FROM G25_temp_comentario;
 	dato	G25_comentario.cod_usuario%type;
 	cuenta	INTEGER;
 	BEGIN
@@ -543,32 +543,34 @@ ALTER TABLE G25_log_paseo
 
 CREATE OR REPLACE TRIGGER G25_logging_paseo
 AFTER INSERT OR DELETE OR UPDATE ON G25_paseo
+FOR EACH ROW
 BEGIN
 	IF INSERTING THEN
-		INSERT INTO G25_log_paseo(cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
-			VALUES (:NEW.cod_paseo,:NEW.cod_ciudad,sysdate,'INSERT',:NEW.nombre_paseo,:NEW.descripcion,:NEW.cod_usuario);
+		INSERT INTO G25_log_paseo(id_log,cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
+			VALUES (G25_pk_log_paseo.nextVal,:NEW.cod_paseo,:NEW.cod_ciudad,sysdate,'INSERT',:NEW.nombre_paseo,:NEW.descripcion,:NEW.cod_usuario);
 	ELSIF DELETING THEN		
-		INSERT INTO G25_log_paseo(cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
-			VALUES (:OLD.cod_paseo,:OLD.cod_ciudad,sysdate,'DELETE',:OLD.nombre_paseo,:OLD.descripcion,:OLD.cod_usuario);
+		INSERT INTO G25_log_paseo(id_log,cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
+			VALUES (G25_pk_log_paseo.nextVal,:OLD.cod_paseo,:OLD.cod_ciudad,sysdate,'DELETE',:OLD.nombre_paseo,:OLD.descripcion,:OLD.cod_usuario);
 	ELSIF UPDATING THEN
-		INSERT INTO G25_log_paseo(cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
-			VALUES (:NEW.cod_paseo,:NEW.cod_ciudad,sysdate,'UPDATE',:OLD.nombre_paseo,:OLD.descripcion,:OLD.cod_usuario);
+		INSERT INTO G25_log_paseo(id_log,cod_paseo,cod_ciudad,fecha,accion,nombre_paseo,descripcion,cod_usuario) 
+			VALUES (G25_pk_log_paseo.nextVal,:NEW.cod_paseo,:NEW.cod_ciudad,sysdate,'UPDATE',:OLD.nombre_paseo,:OLD.descripcion,:OLD.cod_usuario);
+	END IF;
 END;
-
+/
 
 --------------------------------------------------------------------
 ---------------------- Punto 10  ------------------------------------
 --------------------------------------------------------------------
 
 
-CREATE OR REPLACE PROCEDURE G25_paseo_recovery (IN fecha_max DATE) AS
-	cur CURSOR;
+CREATE OR REPLACE PROCEDURE G25_paseo_recovery (fecha_max DATE) AS
+	CURSOR cur IS SELECT * FROM G25_log_paseo WHERE fecha > fecha_max ORDER BY id_log;
 	accion	G25_log_paseo%ROWTYPE;
 BEGIN
-	OPEN cur FOR (SELECT * FROM G25_log_paseo WHERE fecha > fecha_max ORDER BY fecha);
-	IF cur%isopen THEN
+	OPEN cur ;
+	IF (cur%isopen) THEN
 		LOOP
-			FETCH cur INTO accion
+			FETCH cur INTO accion;
 			EXIT WHEN cur%notfound;
 			IF ( accion.accion = 'INSERT'	)	THEN
 				DELETE FROM G25_paseo WHERE cod_paseo=accion.cod_paseo AND cod_ciudad=accion.cod_ciudad;
@@ -576,8 +578,8 @@ BEGIN
 				INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion,cod_usuario) 
 							VALUES (accion.cod_ciudad,accion.cod_paseo,accion.nombre_paseo,accion.descripcion,accion.cod_usuario);
 			ELSE 
-				UPDATE G25_paseo SET nombre_paseo=accion.nombre_paseo AND descripcion=accion.descripcion AND cod_usuario=accion.cod_usuario
-							WHERE cod_paseo=accion.cod_paseo AND cod_ciudad=accion.cod_ciudad;
+				UPDATE G25_paseo SET nombre_paseo=accion.nombre_paseo , descripcion=accion.descripcion , cod_usuario=accion.cod_usuario
+							WHERE (cod_paseo=accion.cod_paseo AND cod_ciudad=accion.cod_ciudad);
 			END IF;
 		END LOOP;
 	END IF;
