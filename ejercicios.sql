@@ -471,18 +471,25 @@ ALTER TABLE G25_comentarios_edad
 	ADD CONSTRAINT pk_comentarios_edad
 		PRIMARY KEY(mes,ano,grupo);
 
-/*TODO chequear*/
+
 CREATE OR REPLACE TRIGGER G25_contador_com_edad
 AFTER INSERT ON G25_comentario
 FOR EACH ROW
 BEGIN
 	DECLARE
 	edad	INTEGER;
+	control	INTEGER;
 BEGIN
 	SELECT trunc((to_number(to_char(sysdate,'yyyymmdd'))
 			-to_number(to_char(fecha_nacimiento,'yyyymmdd'))
 			)/10000)
 	INTO edad FROM G25_usuario WHERE cod_usuario=:NEW.cod_usuario;
+	SELECT COUNT('X') INTO control FROM G25_comentarios_edad WHERE mes=extract(month from sysdate) AND ano=extract(year from sysdate);
+	IF (control = 0) THEN --inicializacion
+		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'adultos');
+		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'jovenes');
+		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'ninos');
+	END IF;
 	IF (edad>21) THEN
 		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
 									AND ano=extract(year from sysdate) AND grupo='adultos';	

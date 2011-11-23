@@ -131,3 +131,10 @@ INSERT INTO G25_original VALUES('1001','En muro');
 -- Ej 7 --
 ----------
 --Ver datos
+
+
+
+----------
+-- Ej 8 --
+----------
+/* CHEQUEADO -- FUNCIONA */
