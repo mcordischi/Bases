@@ -16,7 +16,7 @@ MODIFY (borrado DEFAULT 'NO');
 
 --Restricciones de dominio a categoria
 ALTER TABLE G25_usuario
-ADD CONSTRAINT RD_categoria
+ADD CONSTRAINT G25_RD_categoria
 CHECK (categoria IN ('principiante','intermedio','senior'));
 
 --Valor por default de categoria
@@ -33,11 +33,11 @@ CREATE TABLE G25_comentarios_user(
 );
 
 ALTER TABLE G25_comentarios_user
-ADD CONSTRAINT pk_comentarios_user
+ADD CONSTRAINT G25_pk_comentarios_user
 	PRIMARY KEY(cod_usuario);
 
 ALTER TABLE G25_comentarios_user
-ADD CONSTRAINT fk_comentarios_user
+ADD CONSTRAINT G25_fk_comentarios_user
 	FOREIGN KEY(cod_usuario) REFERENCES G25_usuario(cod_usuario) ON DELETE CASCADE;
 	
 	
@@ -70,7 +70,7 @@ AFTER INSERT OR UPDATE ON G25_comentarios_user
 BEGIN
 	IF (:NEW:cant_comentarios = 50) THEN
 		UPDATE  G25_usuario SET categoria='senior' WHERE cod_usuario=:NEW.cod_usuario;
-	ELSIF (:NEW:cant_comentarios) THEN
+	ELSIF (:NEW:cant_comentarios = 11) THEN
 		UPDATE G25_usuario SET categoria='intermedio' WHERE cod_usuario=:NEW.cod_usuario;
 	END IF;
 END;
@@ -136,7 +136,7 @@ END;
 
 -- Chequeo de amistad con otra persona
 ALTER TABLE G25_amigo
-ADD CONSTRAINT check_invitacion
+ADD CONSTRAINT G25_check_invitacion
 CHECK (cod_usuario_invitado <> cod_usuario);
 
 
@@ -147,11 +147,11 @@ CREATE TABLE G25_cant_amigos(
 	);
 
 ALTER TABLE G25_cant_amigos
-ADD CONSTRAINT fk_cod_usuario
+ADD CONSTRAINT G25_fk_cod_usuario
 FOREIGN KEY (cod_usuario) REFERENCES G25_usuario(cod_usuario) ON DELETE CASCADE ;
 
 ALTER TABLE G25_cant_amigos
-ADD CONSTRAINT pk_cod_usuario
+ADD CONSTRAINT G25_pk_cod_usuario
 PRIMARY KEY (cod_usuario) ;
 
 	
@@ -161,8 +161,8 @@ ALTER TABLE G25_cant_amigos
 	
 -- Valor maximo para amigos	de cada usuario
 ALTER TABLE G25_cant_amigos
-	ADD CONSTRAINT cant_max_amigos
-		CHECK (amigos<=50);--cambiado para test
+	ADD CONSTRAINT G25_cant_max_amigos
+		CHECK (amigos<=500);
 
 		
 --Actualiza cantidad de amigos cuando se agrega a tabla de amigos		
@@ -457,60 +457,102 @@ FROM
 
 --------------------------------------------------------------------
 ---------------------- Punto 8  ------------------------------------
---------------------------------------------------------------------
+-------------------------V 2----------------------------------------
 
+DROP TABLE G25_COMENTARIOS_EDAD
 
+--funcion que extrae semana del ano de una fecha
+CREATE OR REPLACE FUNCTION G25_date_to_week(fecha IN DATE) RETURN INTEGER IS
+	week INTEGER;
+BEGIN
+	select trunc(to_number(to_char(fecha,'ww'))) INTO week from dual;
+	RETURN week;
+END;
+/
+
+--Tabla que almacena cant_comentarios organizado por semana, grupo de edad y paseo
 CREATE TABLE G25_comentarios_edad(
-	mes	CHAR(2),
-	ano	CHAR(4),
-	grupo 	VARCHAR(7),
-	cantidad NUMERIC(5,0)
-);
+	semana 				NUMERIC(3),
+	ano 				NUMERIC(4),
+	grupo				VARCHAR(7),
+	cod_paseo			NUMERIC(10),
+	cod_ciudad			NUMERIC(10),
+	cant_comentarios	NUMERIC(7)
+	);
 
+--Default cantidad de comentarios
 ALTER TABLE G25_comentarios_edad
-	MODIFY (cantidad DEFAULT 0) ;
+	MODIFY (cant_comentarios DEFAULT 0) ;
 
+--RD grupos
 ALTER TABLE G25_comentarios_edad
-	ADD CONSTRAINT RD_grupo
+	ADD CONSTRAINT G25_RD_grupo
 		CHECK (grupo IN ('ninos','jovenes','adultos'));
 
+--PK		
 ALTER TABLE G25_comentarios_edad
-	ADD CONSTRAINT pk_comentarios_edad
-		PRIMARY KEY(mes,ano,grupo);
+	ADD CONSTRAINT G25_pk_comentarios_edad
+		PRIMARY KEY(semana,ano,grupo,cpd_paseo);
+
+--FK
+ALTER TABLE G25_comentarios_edad
+	ADD CONSTRAINT G25_fk_comentarios_edad_paseo
+		FOREIGN KEY(cod_paseo,cod_ciudad) REFERENCES G25_paseo;
 
 
+
+--Trigger controlador de actualizado de tabla de contadores de comentarios en paseo
 CREATE OR REPLACE TRIGGER G25_contador_com_edad
-AFTER INSERT ON G25_comentario
+AFTER INSERT ON G25_en_visita
 FOR EACH ROW
 BEGIN
 	DECLARE
 	edad	INTEGER;
 	control	INTEGER;
+	comentario	G25_comentario%ROWTYPE;
+	visita		G25_visita%ROWTYPE;
+	var_grupo		VARCHAR(7);
 BEGIN
+	--obtener comentario completo
+	SELECT * INTO comentario FROM G25_comentario WHERE cod_comentario=:NEW.cod_comentario;
+	
+	--obtener edad de usuario
 	SELECT trunc((to_number(to_char(sysdate,'yyyymmdd'))
 			-to_number(to_char(fecha_nacimiento,'yyyymmdd'))
 			)/10000)
-	INTO edad FROM G25_usuario WHERE cod_usuario=:NEW.cod_usuario;
-	SELECT COUNT('X') INTO control FROM G25_comentarios_edad WHERE mes=extract(month from sysdate) AND ano=extract(year from sysdate);
-	IF (control = 0) THEN --inicializacion
-		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'adultos');
-		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'jovenes');
-		INSERT INTO G25_comentarios_edad(mes,ano,grupo) VALUES (extract(month from sysdate),extract(year from sysdate),'ninos');
-	END IF;
-	IF (edad>21) THEN
-		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(year from sysdate) AND grupo='adultos';	
+	INTO edad FROM G25_usuario WHERE cod_usuario=comentario.cod_usuario;
+	
+	--obtener paseo
+	SELECT * INTO visita FROM G25_visita WHERE cod_visita=:NEW.cod_visita;
+	
+	--Setear grupo
+	IF (edad > 21) THEN
+		var_grupo:='adultos';
 	ELSIF (edad>14) THEN
-		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(year from sysdate) AND grupo='jovenes';	
-	ELSE 
-		UPDATE G25_comentarios_edad SET cantidad=cantidad+1 WHERE mes=extract(month from sysdate) 
-									AND ano=extract(year from sysdate) AND grupo='ninos';	
+		var_grupo:='jovenes';
+	ELSE
+		var_grupo:='ninos';
 	END IF;
 	
+	
+	--Inicializar valores si es nueva semana o nuevo paseo
+	SELECT COUNT('X') INTO control FROM G25_comentarios_edad WHERE ano=trunc(to_number(to_char(sysdate,'yyyy'))) AND semana=G25_date_to_week(sysdate)
+																 AND grupo=var_grupo AND cod_paseo=visita.cod_paseo AND cod_ciudad=visita.cod_ciudad;
+	IF (control = 0) THEN --inicializacion
+		INSERT INTO G25_comentarios_edad(semana,ano,grupo,cod_paseo,cod_ciudad) 
+				VALUES (G25_date_to_week(sysdate),trunc(to_number(to_char(sysdate,'yyyy'))),var_grupo,visita.cod_paseo,visita.cod_ciudad);
+	END IF;
+	
+	--Agregar al contador
+		UPDATE G25_comentarios_edad SET cant_comentarios=cant_comentarios+1 WHERE ano=trunc(to_number(to_char(sysdate,'yyyy'))) AND semana=G25_date_to_week(sysdate)
+																 AND grupo=var_grupo AND cod_paseo=visita.cod_paseo AND cod_ciudad=visita.cod_ciudad;
 END;
 END;
 /
+
+		
+		
+
 
 
 
@@ -538,12 +580,12 @@ INCREMENT BY 1;
 
 -- pk log_paseo
 ALTER TABLE G25_log_paseo
-	ADD CONSTRAINT pk_log_paseo
+	ADD CONSTRAINT G25_pk_log_paseo
 		PRIMARY KEY(id_log);
 
 -- Restriccion de dominio para la accion
 ALTER TABLE G25_log_paseo
-	ADD CONSTRAINT RD_accion
+	ADD CONSTRAINT G25_RD_accion
 		CHECK(accion IN ('DELETE','INSERT','UPDATE'));
 
 
