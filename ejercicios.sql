@@ -40,6 +40,8 @@ ALTER TABLE G25_comentarios_user
 ADD CONSTRAINT fk_comentarios_user
 	FOREIGN KEY(cod_usuario) REFERENCES G25_usuario(cod_usuario) ON DELETE CASCADE;
 	
+	
+--Actualizacion de tabla auxiliar	
 CREATE OR REPLACE TRIGGER G25_contador_comentarios	
 AFTER INSERT ON G25_comentario
 FOR EACH ROW
@@ -47,17 +49,11 @@ BEGIN
 	DECLARE
 	cont	INT;
 BEGIN
-	SELECT cant_comentarios into cont FROM G25_comentarios_user WHERE cod_usuario=:NEW.cod_usuario;
-	cont:= cont+1;
-	UPDATE  G25_comentarios_user SET cant_comentarios=cont WHERE cod_usuario=:NEW.cod_usuario;
-	IF (cont = 50) THEN
-		UPDATE  G25_usuario SET categoria='senior' WHERE cod_usuario=:NEW.cod_usuario;
-	ELSIF (cont = 10) THEN
-		UPDATE G25_usuario SET categoria='intermedio' WHERE cod_usuario=:NEW.cod_usuario;
-	END IF;
+	UPDATE  G25_comentarios_user SET cant_comentarios=cant_comentarios+1 WHERE cod_usuario=:NEW.cod_usuario;
 END;
 END;
 /
+
 
 --Agrega tupla en contador de comentarios cuando se da de alta en usuario
 CREATE OR REPLACE TRIGGER G25_inic_contador_comentarios
@@ -68,6 +64,17 @@ BEGIN
 END;
 /
 
+-- Chequeo de cambio de categoria
+CREATE OR REPLACE TRIGGER G25_cambio_categoria_user
+AFTER INSERT OR UPDATE ON G25_comentarios_user
+BEGIN
+	IF (:NEW:cant_comentarios = 50) THEN
+		UPDATE  G25_usuario SET categoria='senior' WHERE cod_usuario=:NEW.cod_usuario;
+	ELSIF (:NEW:cant_comentarios) THEN
+		UPDATE G25_usuario SET categoria='intermedio' WHERE cod_usuario=:NEW.cod_usuario;
+	END IF;
+END;
+/
 ---*** SOLUCION VIEJA ***---
 
 -- Nota: Por problemas con tabla mutante, se generan dos triggers
@@ -564,7 +571,7 @@ END;
 
 
 CREATE OR REPLACE PROCEDURE G25_paseo_recovery (fecha_max DATE) AS
-	CURSOR cur IS SELECT * FROM G25_log_paseo WHERE fecha > fecha_max ORDER BY id_log;
+	CURSOR cur IS SELECT * FROM G25_log_paseo WHERE fecha > fecha_max ORDER BY id_log DESC;
 	accion	G25_log_paseo%ROWTYPE;
 BEGIN
 	OPEN cur ;

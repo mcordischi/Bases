@@ -154,4 +154,4 @@ DELETE FROM G25_paseo WHERE cod_ciudad=2 AND cod_paseo=5;
 /* CHEQUEADO PARCIALMENTE -- FUNCIONA A MEDIAS */
 --Se hizo cambio luego de test para correcto funcionamiento
 --Realiza correctamente el procedimiento, ver si no se pisa con trigger ej 9
-EXECUTE G25_paseo_recovery (sysdate);
+EXECUTE G25_paseo_recovery (sysdate-1);
