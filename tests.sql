@@ -1,6 +1,10 @@
 ----------
 -- Ej 1 --
 ----------
+
+ /*TESTEAR*/
+--Hubo cambios
+
 /* CHEQUEADO -- FUNCIONA */
 --chequear en distintos momentos
 SELECT categoria
@@ -138,6 +142,11 @@ INSERT INTO G25_original VALUES('1001','En muro');
 -- Ej 8 --
 ----------
 /* CHEQUEADO -- FUNCIONA */
+INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick,fecha_nacimiento) VALUES ('XX','Briar','Hopkins','sit.amet.massa@non.edu','Ciara','01/01/1980');
+
+INSERT INTO G25_comentario (cod_usuario,texto,tipo,cod_comentario) VALUES ('XX','at, iaculis quis, pede. Praesent eu','Original','1100');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (1100,'en_visita');
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (1100,1);
 
 ----------
 -- Ej 9 --
@@ -151,7 +160,7 @@ DELETE FROM G25_paseo WHERE cod_ciudad=2 AND cod_paseo=5;
 ----------
 -- Ej 10--
 ----------
-/* CHEQUEADO PARCIALMENTE -- FUNCIONA A MEDIAS */
+/* CHEQUEADO-- FUNCIONA*/
 --Se hizo cambio luego de test para correcto funcionamiento
 --Realiza correctamente el procedimiento, ver si no se pisa con trigger ej 9
 EXECUTE G25_paseo_recovery (sysdate-1);

@@ -4,6 +4,7 @@ DROP TABLE G25_comentarios_user;
 DROP TABLE G25_cant_amigos;
 DROP TABLE G25_comentarios_edad;
 DROP TABLE G25_interes_act;
+DROP TABLE G25_log_paseo;
 
 -- Vaciar tablas
 
@@ -2104,3 +2105,45 @@ INSERT INTO G25_amigo (cod_usuario,cod_usuario_invitado) VALUES ('5','584');
 INSERT INTO G25_amigo (cod_usuario,cod_usuario_invitado) VALUES ('1','343');
 INSERT INTO G25_amigo (cod_usuario,cod_usuario_invitado) VALUES ('4','559');
 
+
+--Visitas
+
+INSERT INTO G25_visita(cod_visita,fecha,cod_usuario,cod_paseo,cod_ciudad) VALUES (1,sysdate,1,1,1);
+INSERT INTO G25_visita(cod_visita,fecha,cod_usuario,cod_paseo,cod_ciudad) VALUES (2,sysdate,2,4,2);
+
+-- Original
+-- Nota, puede que tupla :tipo sea incoherente, se realizan estas tuplas para probar solo ej 8
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (1,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (2,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (3,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (4,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (5,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (6,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (7,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (8,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (9,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (10,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (11,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (12,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (13,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (14,'en_visita');
+INSERT INTO G25_original(cod_comentario,tipodeorig) VALUES (15,'en_visita');
+
+
+-- en visita
+
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (1,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (2,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (3,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (4,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (5,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (6,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (7,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (8,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (9,1);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (10,2);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (11,2);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (12,2);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (13,2);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (14,2);
+INSERT INTO G25_en_visita(cod_comentario,cod_visita) VALUES (15,2);
