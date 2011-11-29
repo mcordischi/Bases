@@ -263,31 +263,20 @@ CHECK (nombre IN ('social','deportiva','cultural'));
 -------------------------------------------------------------------
 ---------------------- Punto 5  ------------------------------------
 --------------------------------------------------------------------
-/*5. Un usuario solo podrá visitar paseos donde pueda desarrollar actividades de su interés o bien paseos 
-que no tienen ninguna actividad asociada. Si el usuario no puede realizar una visita porque no se 
-desarrollan las actividades de su interés deberá quedar registrado en una tabla Paseo_Fallido con los 
+/*Un usuario solo podrá visitar paseos donde pueda desarrollar actividades de su interés o bien paseos
+que no tienen ninguna actividad asociada. Si el usuario no puede realizar una visita porque no se
+desarrollan las actividades de su interés deberá quedar registrado en una tabla Paseo_Fallido con los
 siguientes datos: usuario, todas las actividades de interés del usuario en cuestión, nombre del paseo,
 las actividades del paseo que quería realizar y fecha.*/
 
-
-/*--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO--TODO*/
--- Terminar agregando en tabla todas las actividades del usuario y del lugar
-
 DROP TABLE G25_paseo_fallido ;
-DROP TABLE G25_visita_fallida_tmp;
-
 CREATE TABLE G25_paseo_fallido(
-	cod_fallo		NUMERIC(10,0),
-	cod_usuario		VARCHAR(20),
-	cod_paseo		NUMERIC(10,0),
-	cod_ciudad		NUMERIC(10,0),
-	fecha			DATE
+	cod_fallo				NUMERIC(10,0),
+	cod_usuario				VARCHAR(20),
+	total_actividades		VARCHAR(500),
+	actividades_deseadas   	VARCHAR(500),
+	fecha					DATE
 );
-
-CREATE TABLE G25_visita_fallida_tmp(
-	cod_visita		VARCHAR(20)
-);
-
 
 -- Nota: se decidi? poner como pk solo un codigo para simplicidad en la clave(eficiencia)	
 ALTER TABLE G25_paseo_fallido
@@ -298,60 +287,66 @@ ALTER TABLE G25_paseo_fallido
 	ADD CONSTRAINT fk_paseo_fallido_usuario
 		FOREIGN KEY (cod_usuario) REFERENCES G25_usuario(cod_usuario);
 		
-ALTER TABLE G25_paseo_fallido
-	ADD CONSTRAINT fk_paseo_fallido_paseo
-		FOREIGN KEY (cod_paseo,cod_ciudad) REFERENCES G25_paseo(cod_paseo,cod_ciudad);
-		
 -- Auto incremento para paseo_fallido		
 DROP SEQUENCE G25_ctr_pk_paseo_fallido ;
 CREATE SEQUENCE G25_ctr_pk_paseo_fallido		
-START WITH 1
-INCREMENT BY 1;
+	START WITH 1 INCREMENT BY 1;
+
+--TRANSACCION AUTONOMA
+CREATE OR REPLACE PROCEDURE G25_insertar_visita_fallida(COD_FALLO IN INTEGER, COD_USR IN VARCHAR, COD_PAS IN INTEGER, COD_CIU IN INTEGER, D1 IN DATE) 
+AS PRAGMA AUTONOMOUS_TRANSACTION ;
+-- INTERTA LA VISITA FALLIDA, NO LO AFECTA EL ROLLBACK 
+    Y VARCHAR(60) := '' ;
+    TOTAL_ACTIVIDADES VARCHAR(500) := '';
+    ACTIVIDADES_DESEADAS VARCHAR(500) := '';
+    CURSOR C1 IS SELECT NOMBRE_ACTIVIDAD FROM (G25_INTERESA_ACT IACT JOIN G25_ACTIVIDAD ACT ON (IACT.ID_ACTIVIDAD = ACT.ID_ACTIVIDAD))  WHERE (COD_USUARIO = COD_USR) ;
+    CURSOR C2 IS SELECT NOMBRE_ACTIVIDAD FROM (G25_REALIZADA_EN RACT JOIN G25_ACTIVIDAD ACT ON (RACT.ID_ACTIVIDAD = ACT.ID_ACTIVIDAD))  WHERE ((COD_PASEO = COD_PAS) AND (COD_CIUDAD = COD_CIU)) ;
+BEGIN
+	OPEN C1; 
+	FETCH C1 INTO Y ;
+	WHILE C1%FOUND LOOP 
+		TOTAL_ACTIVIDADES := CONCAT (CONCAT( TOTAL_ACTIVIDADES, '; '), Y) ;
+		FETCH C1 INTO Y ;
+	END LOOP;
+	Y := '';
+	OPEN C2; 
+	FETCH C2 INTO Y ;
+	WHILE C2%FOUND LOOP 
+		ACTIVIDADES_DESEADAS := CONCAT (CONCAT( ACTIVIDADES_DESEADAS, '; '), Y) ;
+		FETCH C2 INTO Y ;
+	END LOOP;
+    INSERT INTO G25_PASEO_FALLIDO VALUES ( COD_FALLO, COD_USR, TOTAL_ACTIVIDADES, ACTIVIDADES_DESEADAS, D1 ) ;
+    COMMIT ;
+END;
+/
+SHOW ERRORS PROCEDURE g25_insertar_visita_fallida ;
+
 
 CREATE OR REPLACE TRIGGER G25_confirmacion_paseo
-BEFORE INSERT ON G25_visita
+AFTER INSERT ON G25_visita
 FOR EACH ROW
-BEGIN
-	DECLARE
-		cuenta INTEGER;
+DECLARE
+	cuenta INTEGER;
 BEGIN
 	--chequear que haya actividades relacionadas al paseo
-	SELECT COUNT('X') INTO cuenta FROM G25_realizada_en WHERE  cod_paseo= :NEW.cod_paseo AND cod_ciudad= :NEW.cod_ciudad; 
+	SELECT COUNT('X') INTO cuenta FROM G25_realizada_en WHERE  ( cod_paseo = :NEW.cod_paseo) AND cod_ciudad= :NEW.cod_ciudad; 
 	IF (cuenta > 0) THEN
 		--chequear que haya actividades en comun entre el usuario y el paseo
 		SELECT COUNT('X') INTO cuenta
 	    FROM (
-		      SELECT id_actividad FROM G25_realizada_en WHERE cod_paseo= :NEW.cod_paseo AND cod_ciudad= :NEW.cod_ciudad
-			  INTERSECT
-			  SELECT id_actividad FROM G25_interesa_act WHERE cod_usuario= :NEW.cod_usuario
-			  );
-		IF (cuenta == 0) THEN
+		    SELECT id_actividad FROM G25_realizada_en WHERE ( cod_paseo = :NEW.cod_paseo) AND ( cod_ciudad = :NEW.cod_ciudad )
+			INTERSECT
+			SELECT id_actividad FROM G25_interesa_act WHERE (cod_usuario = :NEW.cod_usuario)
+			);
+		IF (cuenta = 0) THEN
 			--Paseo fallido
-			/* FALTA : armar una lista concatenada de todas las actividades de interés del usuario en cuestión,
-                       y otra con todas las actividades del paseo que quería realizar */
-			
-			INSERT INTO G25_paseo_fallido VALUES (ctr_pk_paseo_fallido.nextVal,:NEW.cod_usuario,:NEW.cod_paseo,:NEW.cod_ciudad,SYSDATE);
-			--Evita tabla mutante
-			INSERT INTO G25_visita_fallida_tmp VALUES (:NEW.cod_visita);
-			--TODO PROBAR QUE GRABE
-			--RAISE_APPLICATION_ERROR(-20002,'Paseo prohibido');
+			G25_insertar_visita_fallida(G25_ctr_pk_paseo_fallido.nextVal,:NEW.cod_usuario,:NEW.cod_paseo,:NEW.cod_ciudad,SYSDATE);
+			RAISE_APPLICATION_ERROR(-20002,'Paseo prohibido');
 		END IF;
-	END IF;
-END;	
+	END IF;	
 END;
 /
-
-CREATE OR REPLACE TRIGGER G25_confirmacion_paseo_st
-AFTER INSERT ON G25_VISITA
-DECLARE
-	I G25_visita_fallida_tmp%ROWTYPE;
-BEGIN
-	FOR I IN ( SELECT * FROM G25_visita_fallida_tmp ) LOOP
-		DELETE G25_VISITA WHERE cod_visita = I.cod_visita;
-	END LOOP;
-	DELETE FROM G25_visita_fallida_tmp;
-END;
-/
+SHOW ERRORS TRIGGER G25_CONFIRMACION_PASEO ;
 
 
 --------------------------------------------------------------------
@@ -434,24 +429,120 @@ END;
 ---------------------- Punto 7  ------------------------------------
 --------------------------------------------------------------------
 
- 
 
-SELECT *
-FROM
-	(SELECT * 
-		FROM G25_realizada_en 
-		WHERE id_actividad IN (SELECT id_actividad 
-								FROM G25_actividad 
-								WHERE nombre_actividad LIKE 'caminata%' ) 
-				AND cod_ciudad = (SELECT cod_ciudad 
-									FROM G25_ciudad 
-									WHERE nombre_ciudad ='Tandil')
-	)
-	NATURAL JOIN (SELECT nombre_paseo,cod_paseo,cod_ciudad FROM G25_paseo)	
-	NATURAL JOIN (SELECT id_actividad,nombre_actividad,elemento_necesario FROM G25_actividad )
-		
-	;
-/* TODO Buscar foto	*/
+/*
+7. Los paseos de Tandil en los que pueden realizarse ‘caminatas’ son muy visitados, por lo que siempre
+son motivo de consulta. Los potenciales visitantes desean saber :
+1) que otras actividades se realizan en esos paseos,
+2) si es necesario llevar algún elemento para desarrollar la/s actividades durante la visita. 
+3) También desean ver alguna imagen de cada lugar.
+*/
+create or replace function g25_obtener_imagenes( cod_p in varchar, cod_c in varchar ) return varchar is
+-- OBTIENE TODAS LAS IMAGENES (públicas) ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
+	cursor c1 is select foto.imagen from (
+                                          (select cod_visita from g25_visita visita where visita.cod_paseo = cod_p and visita.cod_ciudad = cod_c ) aux
+                                          join g25_informacion informacion on ( aux.cod_visita = informacion.cod_visita and informacion.privacidad = 'publico')
+                                          join g25_foto foto on ( foto.cod_informacion = informacion.cod_informacion) 
+                                          ) ;
+                                                           
+    y varchar(30) := '' ;
+    imagenes varchar(500) := '' ;
+begin	
+    OPEN C1; 
+    FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+      	imagenes := CONCAT ( y, CONCAT(', ',imagenes )) ;
+       FETCH C1 INTO Y ;
+  	END LOOP;
+    return imagenes ;
+end ;
+/
+
+--show errors function g25_obtener_imagenes ;
+
+create or replace function g25_obtener_imagenes( cod_p in varchar, cod_c in varchar ) return varchar is
+-- OBTIENE TODAS LAS IMAGENES (públicas) ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
+	cursor c1 is select foto.imagen from (
+                                          (select cod_visita from g25_visita visita where visita.cod_paseo = cod_p and visita.cod_ciudad = cod_c ) aux
+                                          join g25_informacion informacion on ( aux.cod_visita = informacion.cod_visita and informacion.privacidad = 'publico')
+                                          join g25_foto foto on ( foto.cod_informacion = informacion.cod_informacion) 
+                                          ) ;
+                                                           
+    y varchar(30) := '' ;
+    imagenes varchar(500) := '' ;
+begin	
+    OPEN C1; 
+    FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+      	imagenes := CONCAT ( y, CONCAT(', ',imagenes )) ;
+        FETCH C1 INTO Y ;
+  	END LOOP;
+    return imagenes ;
+end ;
+/
+
+create or replace function g25_obtener_actividades( cod_p in varchar, cod_c in varchar ) return varchar is
+-- OBTIENE TODAS LAS ACTIVIDADES ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
+	cursor c1 is select actividad.nombre_actividad from (
+                                          (select id_actividad from g25_realizada_en where cod_paseo = cod_p and cod_ciudad = cod_c ) aux
+                                          join g25_actividad actividad on ( actividad.id_actividad = aux.id_actividad) 
+                                          ) ;
+                                                           
+    y varchar(30) := '' ;
+    actividades varchar(500) := '' ;
+begin	
+    OPEN C1; 
+    FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+      	actividades := CONCAT ( y, CONCAT(', ',actividades )) ;
+       FETCH C1 INTO Y ;
+  	END LOOP;
+    return actividades ;
+end ;
+/
+
+show errors function g25_obtener_actividades ;
+
+create or replace function g25_obtener_elementos( cod_p in varchar, cod_c in varchar ) return varchar is
+-- OBTIENE TODAS LOS ELEMENTOS ASOCIADOS A LAS ACTIVIDADES DE UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
+	cursor c1 is select actividad.elemento_necesario from (
+                                          (select id_actividad from g25_realizada_en where cod_paseo = cod_p and cod_ciudad = cod_c ) aux
+                                          join g25_actividad actividad on ( actividad.id_actividad = aux.id_actividad) 
+                                          ) ;
+                                                           
+    y varchar(30) := '' ;
+    elementos varchar(500) := '' ;
+begin	
+    OPEN C1; 
+    FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+      	elementos := CONCAT ( y, CONCAT(', ',elementos )) ;
+       FETCH C1 INTO Y ;
+  	END LOOP;
+    return elementos ;
+end ;
+/
+
+show errors function g25_obtener_elementos ;
+
+create or replace view g25_caminatas_tandilenses as 
+select t1.*, 
+       g25_obtener_imagenes(t1.cod_paseo, t1.cod_ciudad) as imagenes,
+       g25_obtener_actividades(t1.cod_paseo, t1.cod_ciudad) as actividades,
+       g25_obtener_elementos(t1.cod_paseo, t1.cod_ciudad) as elementos
+from (SELECT p.nombre_paseo, p.cod_paseo cod_paseo, p.cod_ciudad cod_ciudad 
+      FROM 
+          G25_PASEO P JOIN G25_REALIZADA_EN RE ON (P.COD_PASEO = RE.COD_PASEO ) 
+          JOIN G25_ACTIVIDAD ACT ON (re.id_actividad = act.id_actividad) 
+          JOIN G25_CIUDAD CIU ON ( p.cod_ciudad = ciu.cod_ciudad AND ciu.nombre_ciudad = 'Tandil') 
+    
+         WHERE (P.COD_PASEO IN ( SELECT R.COD_PASEO 
+                                FROM G25_REALIZADA_EN R JOIN G25_ACTIVIDAD AC ON (R.id_actividad = AC.id_actividad)
+                                WHERE (ACT.NOMBRE_ACTIVIDAD LIKE 'caminata%')
+                              )
+          )
+      ) t1
+;
 
 
 
@@ -634,3 +725,146 @@ BEGIN
 	END IF;
 END;
 /
+
+
+
+
+
+--------------------------------------------------------------------
+---------------------- Punto 11  -----------------------------------
+--------------------------------------------------------------------
+
+
+/*
+11. Con fines estadísticos, a fin del día se elaborará un informe con los siguientes datos: 
+1) todos los datos del paseo más visitado, 
+2) todos los datos del usuario que más comentarios haya realizado, 
+3) el/los usuarios que más información haya/n subido (aclarando la cantidad de cada tipo, 
+el que más haya subido tendrá la mayor suma de cantidades), 
+4) Y las 5 actividades más desarrolladas en los paseos por los usuarios que hicieron visitas en ese día. 
+*/
+
+create or replace view g25_paseo_mas_visitado as
+select paseo.* from ( select V.cod_paseo, v.cod_ciudad , count( concat(concat(v.cod_paseo, ';'), v.cod_ciudad)) as total from g25_visita  V
+                where (to_char(v.fecha, 'dd/mm/yyyy') = to_char(sysdate, 'dd/mm/yyyy'  ))
+                group by (V.cod_paseo, V.cod_ciudad)
+                ORDER BY count( concat(concat(v.cod_paseo, ';'), v.cod_ciudad)) DESC 
+              ) t1 join g25_paseo paseo on (t1.cod_paseo = paseo.cod_paseo and paseo.cod_ciudad = t1.cod_ciudad)
+where rownum <= 1
+;
+
+select * from g25_paseo_mas_visitado ;
+
+
+/* el usuarios que más comento */
+/* falta agregar al modelo fecha comentario*/
+alter table g25_comentario
+	add fecha date ;
+
+create or replace view g25_usuario_mas_comento as
+select usr.*, total_comentarios from ( select com.cod_usuario usr, count(com.cod_usuario) as total_comentarios from g25_comentario com
+                where (to_char(com.fecha, 'dd/mm/yyyy') = to_char(sysdate, 'dd/mm/yyyy'  ))
+                group by (com.cod_usuario)
+                ORDER BY count( com.cod_usuario ) DESC 
+              ) join g25_usuario usr on ( usr.cod_usuario = usr ) 
+where rownum <= 1
+;
+
+select * from g25_usuario_mas_comento ;
+
+
+/* el/los usuarios que más información haya/n subido (aclarando la cantidad de cada tipo, 
+el que más haya subido tendrá la mayor suma de cantidades), */
+
+--se agrego el campo fecha a la informacion INDISPENSABLE
+alter table g25_informacion
+	add fecha date ;
+
+create or replace view g25_usuario_mas_info as
+select cod_usuario, tipo_info, count(informacion.cod_informacion) as cantidad 
+from g25_visita visita join g25_informacion informacion on (informacion.cod_visita = visita.cod_visita)
+group by (cod_usuario, tipo_info)
+having cod_usuario = ( select cod_usuario 
+                       from ( select v.cod_usuario, count(cod_informacion) as cant
+                              from g25_visita v join g25_informacion i on (i.cod_visita = v.cod_visita)
+                              where to_char(v.fecha,'dd/mm/yyyy') = to_char(sysdate,'dd/mm/yyyy')
+                              group by v.cod_usuario
+                              order by cant desc
+                             ) tabla_aux
+                      where rownum =1
+                      );
+                      
+select * from g25_usuario_mas_info ;
+/*4) Y las 5 actividades más desarrolladas en los paseos por los usuarios que hicieron visitas en ese día. 
+*/
+
+-- se supone que un usuario desarrolla todas las actividades del paseo visitado
+create or replace view g25_mas_desarolladas as
+select * from (
+                select realizada.id_actividad, count( realizada.id_actividad ) as total 
+                from g25_visita visita join g25_paseo paseo on ((visita.cod_paseo = paseo.cod_paseo) and (visita.cod_ciudad = paseo.cod_ciudad) ) and (to_char(visita.fecha, 'dd/mm/yyyy') = to_char(sysdate, 'dd/mm/yyyy') ) 
+                                       join g25_realizada_en realizada on (realizada.cod_paseo = paseo.cod_paseo and realizada.cod_ciudad = paseo.cod_ciudad)
+                group by (realizada.id_actividad)
+                ORDER BY count( realizada.id_actividad) DESC 
+              )
+where rownum <= 5
+;
+select * from g25_mas_desarolladas ;
+
+
+
+
+--------------------------------------------------------------------
+---------------------- Punto 12  -----------------------------------
+--------------------------------------------------------------------
+/*
+12. En un archivo de texto se guardará la actividad de cada uno de los usuarios (el nombre del archivo
+será USU_cod_usuario) con el objetivo de tener un backup fuera de la base.
+*/
+-- IMPORTANTE: hago backup de todas las visitas realizadas por los usuarios
+
+connect sys/954120 as sysdba ;
+grant execute on utl_file to public;
+
+create or replace directory g25_temp as 'c:\temp' ;
+grant read, write on directory g25_temp to public ;
+
+create or replace procedure g25_guardar_visita( cod_usr in varchar )
+AS PRAGMA AUTONOMOUS_TRANSACTION ;
+    f utl_file.file_type;
+    encabezado varchar(50) := 'cod_visita | cod_ciudad | cod_paseo | fecha' ;
+    cursor c1 is select concat(concat(concat(concat(concat(concat(cod_visita, ' | '), cod_ciudad),' | '),cod_paseo),' | '),to_char(fecha, 'dd/mm/yyyy')) from system.g25_visita where cod_usuario = cod_usr;
+    y varchar(50) := '' ;
+begin
+    y := concat(concat('USU_', cod_usr), '.txt');
+    f := utl_file.fopen('G25_TEMP',y,'w');
+    utl_file.put_line(f, encabezado) ;
+    utl_file.put_line(f, '--------------------------------------------') ;
+    OPEN C1; 
+  	FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+        utl_file.put_line(f, y) ;   	
+        FETCH C1 INTO Y ;
+    END LOOP;
+    utl_file.fclose(f);
+
+end ;
+/ 
+--show errors procedure g25_guardar_visita ;
+
+create or replace procedure g25_backup_visitas 
+AS PRAGMA AUTONOMOUS_TRANSACTION ;
+    cursor c1 is select distinct cod_usuario from system.g25_visita;
+    y varchar(50) := '' ;
+begin
+    OPEN C1; 
+  	FETCH C1 INTO Y ;
+    WHILE C1%FOUND LOOP 
+        g25_guardar_visita(y) ;
+        FETCH C1 INTO Y ;
+    END LOOP;
+end ;
+/ 
+--show errors procedure g25_backup_visitas ;
+
+--execute g25_backup_visitas ;

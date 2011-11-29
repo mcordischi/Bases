@@ -5,6 +5,7 @@ DROP TABLE G25_cant_amigos;
 DROP TABLE G25_comentarios_edad;
 DROP TABLE G25_interes_act;
 DROP TABLE G25_log_paseo;
+DROP SEQUENCE G25_pk_log_paseo;
 
 -- Vaciar tablas
 
@@ -68,7 +69,7 @@ INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (2,'Ta
 INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (3,'Buenos Aires','Ninguno','Ninguno');
 --Paseos
 INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,1,'La feliz en verano','Temporada de verano');
-INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,2,'La feliz en verano2','Temporada de verano');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,2,'La feliz en verano2','Temporada de verano V2');
 INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,4,'Tandil historico','Todo trucho');
 INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,5,'Tandil cultural','Paisanos por todos lados');
 INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,6,'Tandil viejo','Sin caminata');

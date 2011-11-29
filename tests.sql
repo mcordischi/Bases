@@ -117,7 +117,88 @@ SELECT *
 
 ----------
 -- Ej 5 --
---TODO
+
+CASO DE TEST */
+
+-- Vaciar tablas
+
+DELETE FROM G25_amigo;
+DELETE FROM G25_invitacion;
+DELETE FROM G25_EN_MURO;
+DELETE FROM G25_EN_VISITA;
+DELETE FROM G25_RESPUESTA;
+DELETE FROM G25_ORIGINAL;
+DELETE FROM G25_comentario;
+DELETE FROM g25_interesa_paseo;
+DELETE FROM g25_foto;
+DELETE FROM g25_mapa;
+DELETE FROM g25_video;
+DELETE FROM g25_informacion;
+DELETE FROM g25_visita;
+DELETE FROM g25_interesa_act;
+DELETE FROM G25_realizada_en;
+DELETE FROM G25_paseo;
+DELETE FROM G25_ciudad;
+DELETE FROM g25_actividad;
+DELETE FROM G25_PASEO_FALLIDO;
+DELETE FROM G25_tipo_actividad;
+DELETE FROM G25_usuario;
+
+--tipo actividad	
+INSERT INTO G25_tipo_actividad(id_tipo_act,nombre) VALUES (1,'deportiva');
+INSERT INTO G25_tipo_actividad(id_tipo_act,nombre) VALUES (2,'social');
+INSERT INTO G25_tipo_actividad(id_tipo_act,nombre) VALUES (3,'cultural');
+--actividad
+INSERT INTO G25_actividad(id_actividad,nombre_actividad,elemento_necesario,id_tipo_act) VALUES(1,'caminata','dos patas',1);
+INSERT INTO G25_actividad(id_actividad,nombre_actividad,elemento_necesario,id_tipo_act) VALUES(2,'boliche','ropa',2);
+INSERT INTO G25_actividad(id_actividad,nombre_actividad,elemento_necesario,id_tipo_act) VALUES(3,'canotaje','brazos',1);
+INSERT INTO G25_actividad(id_actividad,nombre_actividad,elemento_necesario,id_tipo_act) VALUES(4,'Playa','sombrilla y malla',2);
+--ciudades
+INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (1,'Mar del plata','Pueyrredon','Buenos Aires');
+INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (2,'Tandil','Pueyrredon','Buenos Aires');
+INSERT INTO G25_ciudad(cod_ciudad,nombre_ciudad,partido,provincia) VALUES (3,'Buenos Aires','Ninguno','Ninguno');
+--Paseos
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,1,'La feliz en verano','Temporada de verano');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (1,2,'La feliz en verano2','Temporada de verano');
+INSERT INTO G25_paseo(cod_ciudad,cod_paseo,nombre_paseo,descripcion) VALUES (2,4,'Tandil historico','Todo trucho');
+--relacion actividad-paseo
+INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (2,1,1);
+INSERT INTO G25_realizada_en(id_actividad,cod_paseo,cod_ciudad) VALUES (4,1,1);
+--Usuario
+
+-- Extras
+
+ALTER TABLE G25_usuario
+MODIFY (borrado DEFAULT 'NO');
+
+
+--Restricciones de dominio a categoria
+
+ALTER TABLE G25_usuario
+DROP CONSTRAINT RD_categoria ;
+
+ALTER TABLE G25_usuario
+ADD CONSTRAINT RD_categoria
+CHECK (categoria IN ('principiante','intermedio','senior'));
+
+--Valor por default de categoria
+ALTER TABLE G25_usuario
+MODIFY (categoria DEFAULT 'principiante');
+
+INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('1','Briar','Hopkins','sit.amet.massa@non.edu','Ciara');
+
+-- interesa
+INSERT INTO G25_interesa_act(cod_usuario,id_actividad) VALUES ('1',2);
+
+
+--Visitas
+
+INSERT INTO G25_visita (cod_visita,cod_paseo,cod_ciudad,fecha,cod_usuario) VALUES ('1',1,1,sysdate,'1');
+
+INSERT INTO G25_usuario (cod_usuario,nombres,apellidos,email,nick) VALUES ('2','Cally','Bartlett','id@magna.org','Hyacinth');
+INSERT INTO G25_visita (cod_visita,cod_paseo,cod_ciudad,fecha,cod_usuario) VALUES ('2',1,1,sysdate,'2');
+
+select * from g25_paseo_fallido ;
 
 ----------
 -- Ej 6 --
