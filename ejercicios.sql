@@ -68,14 +68,14 @@ END;
 CREATE OR REPLACE TRIGGER G25_cambio_categoria_user
 AFTER INSERT OR UPDATE ON G25_comentarios_user
 BEGIN
-	IF (:NEW:cant_comentarios = 50) THEN
+	IF (:NEW.cant_comentarios = 50) THEN
 		UPDATE  G25_usuario SET categoria='senior' WHERE cod_usuario=:NEW.cod_usuario;
-	ELSIF (:NEW:cant_comentarios = 11) THEN
+	ELSIF (:NEW.cant_comentarios = 11) THEN
 		UPDATE G25_usuario SET categoria='intermedio' WHERE cod_usuario=:NEW.cod_usuario;
 	END IF;
 END;
 /
----*** SOLUCION VIEJA ***---
+/**---*** SOLUCION VIEJA ***---
 
 -- Nota: Por problemas con tabla mutante, se generan dos triggers
 ----------------------------
@@ -121,7 +121,7 @@ BEGIN
 END;
 /
 
-
+**/
 
 
 
@@ -583,7 +583,7 @@ ALTER TABLE G25_comentarios_edad
 --PK		
 ALTER TABLE G25_comentarios_edad
 	ADD CONSTRAINT G25_pk_comentarios_edad
-		PRIMARY KEY(semana,ano,grupo,cpd_paseo);
+		PRIMARY KEY(semana,ano,grupo,cod_paseo);
 
 --FK
 ALTER TABLE G25_comentarios_edad
