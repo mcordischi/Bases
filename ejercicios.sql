@@ -67,6 +67,7 @@ END;
 -- Chequeo de cambio de categoria
 CREATE OR REPLACE TRIGGER G25_cambio_categoria_user
 AFTER INSERT OR UPDATE ON G25_comentarios_user
+FOR EACH ROW
 BEGIN
 	IF (:NEW.cant_comentarios = 50) THEN
 		UPDATE  G25_usuario SET categoria='senior' WHERE cod_usuario=:NEW.cod_usuario;
@@ -427,7 +428,7 @@ END;
 
 --------------------------------------------------------------------
 ---------------------- Punto 7  ------------------------------------
---------------------------------------------------------------------
+-------------------------V 2----------------------------------------
 
 
 /*
@@ -437,28 +438,6 @@ son motivo de consulta. Los potenciales visitantes desean saber :
 2) si es necesario llevar algún elemento para desarrollar la/s actividades durante la visita. 
 3) También desean ver alguna imagen de cada lugar.
 */
-create or replace function g25_obtener_imagenes( cod_p in varchar, cod_c in varchar ) return varchar is
--- OBTIENE TODAS LAS IMAGENES (públicas) ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
-	cursor c1 is select foto.imagen from (
-                                          (select cod_visita from g25_visita visita where visita.cod_paseo = cod_p and visita.cod_ciudad = cod_c ) aux
-                                          join g25_informacion informacion on ( aux.cod_visita = informacion.cod_visita and informacion.privacidad = 'publico')
-                                          join g25_foto foto on ( foto.cod_informacion = informacion.cod_informacion) 
-                                          ) ;
-                                                           
-    y varchar(30) := '' ;
-    imagenes varchar(500) := '' ;
-begin	
-    OPEN C1; 
-    FETCH C1 INTO Y ;
-    WHILE C1%FOUND LOOP 
-      	imagenes := CONCAT ( y, CONCAT(', ',imagenes )) ;
-       FETCH C1 INTO Y ;
-  	END LOOP;
-    return imagenes ;
-end ;
-/
-
---show errors function g25_obtener_imagenes ;
 
 create or replace function g25_obtener_imagenes( cod_p in varchar, cod_c in varchar ) return varchar is
 -- OBTIENE TODAS LAS IMAGENES (públicas) ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
@@ -504,7 +483,7 @@ end ;
 show errors function g25_obtener_actividades ;
 
 create or replace function g25_obtener_elementos( cod_p in varchar, cod_c in varchar ) return varchar is
--- OBTIENE TODAS LOS ELEMENTOS ASOCIADOS A LAS ACTIVIDADES DE UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
+-- OBTIENE TODAS LAS ACTIVIDADES ASOCIADAS A UN PASEO , Y LAS CONCATENA EN UN VARCHAR.
 	cursor c1 is select actividad.elemento_necesario from (
                                           (select id_actividad from g25_realizada_en where cod_paseo = cod_p and cod_ciudad = cod_c ) aux
                                           join g25_actividad actividad on ( actividad.id_actividad = aux.id_actividad) 
@@ -526,31 +505,27 @@ end ;
 show errors function g25_obtener_elementos ;
 
 create or replace view g25_caminatas_tandilenses as 
-select t1.*, 
-       g25_obtener_imagenes(t1.cod_paseo, t1.cod_ciudad) as imagenes,
-       g25_obtener_actividades(t1.cod_paseo, t1.cod_ciudad) as actividades,
-       g25_obtener_elementos(t1.cod_paseo, t1.cod_ciudad) as elementos
-from (SELECT p.nombre_paseo, p.cod_paseo cod_paseo, p.cod_ciudad cod_ciudad 
-      FROM 
-          G25_PASEO P JOIN G25_REALIZADA_EN RE ON (P.COD_PASEO = RE.COD_PASEO ) 
-          JOIN G25_ACTIVIDAD ACT ON (re.id_actividad = act.id_actividad) 
-          JOIN G25_CIUDAD CIU ON ( p.cod_ciudad = ciu.cod_ciudad AND ciu.nombre_ciudad = 'Tandil') 
-    
-         WHERE (P.COD_PASEO IN ( SELECT R.COD_PASEO 
-                                FROM G25_REALIZADA_EN R JOIN G25_ACTIVIDAD AC ON (R.id_actividad = AC.id_actividad)
-                                WHERE (ACT.NOMBRE_ACTIVIDAD LIKE 'caminata%')
-                              )
-          )
-      ) t1
+SELECT P.*, 
+       G25_OBTENER_IMAGENES(P.COD_PASEO, P.COD_CIUDAD) AS IMAGENES,
+       G25_OBTENER_ACTIVIDADES(P.COD_PASEO, P.COD_CIUDAD) AS ACTIVIDADES,
+       g25_obtener_elementos(P.cod_paseo, P.cod_ciudad) as elementos
+FROM 
+      (SELECT P1.*
+            FROM G25_PASEO P1 
+            WHERE (P1.COD_PASEO IN ( SELECT R.COD_PASEO 
+                                    FROM G25_REALIZADA_EN R JOIN G25_ACTIVIDAD AC ON (R.id_actividad = AC.id_actividad)
+                                    WHERE (AC.NOMBRE_ACTIVIDAD LIKE 'caminata%')
+                                  )
+        )     ) P
+        JOIN G25_CIUDAD CIU ON ( p.cod_ciudad = ciu.cod_ciudad AND ciu.nombre_ciudad = 'Tandil') 
 ;
-
 
 
 --------------------------------------------------------------------
 ---------------------- Punto 8  ------------------------------------
 -------------------------V 2----------------------------------------
 
-DROP TABLE G25_COMENTARIOS_EDAD
+DROP TABLE G25_COMENTARIOS_EDAD;
 
 --funcion que extrae semana del ano de una fecha
 CREATE OR REPLACE FUNCTION G25_date_to_week(fecha IN DATE) RETURN INTEGER IS
